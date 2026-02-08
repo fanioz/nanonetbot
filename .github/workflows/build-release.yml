@@ -32,7 +32,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install .NET 10 Preview
+    - name: Install .NET 10 Preview (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        curl -fsSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0 --quality preview
+        echo "$HOME/.dotnet" >> $GITHUB_PATH
+
+    - name: Install .NET 10 Preview (Windows)
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile "dotnet-install.ps1"
