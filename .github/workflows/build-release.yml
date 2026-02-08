@@ -17,16 +17,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-14, macos-14-large]
         include:
           - os: ubuntu-latest
             runtime: linux-x64
+            artifact: CoreBot-linux-x64
           - os: windows-latest
             runtime: win-x64
-          - os: macos-14
+            artifact: CoreBot-win-x64
+          - os: macos-latest
             runtime: osx-x64
-          - os: macos-14-large
+            artifact: CoreBot-osx-x64
+          - os: macos-latest
             runtime: osx-arm64
+            artifact: CoreBot-osx-arm64
 
     steps:
     - name: Checkout
@@ -46,40 +49,14 @@ jobs:
     - name: Test
       run: dotnet test CoreBot.sln --configuration Release --no-build --verbosity normal
 
-    - name: Publish (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Publish
       run: |
         dotnet publish CoreBot.Host -c Release -r ${{ matrix.runtime }} --self-contained -p:PublishSingleFile=true -o publish/${{ matrix.runtime }}
 
-    - name: Publish (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        dotnet publish CoreBot.Host -c Release -r ${{ matrix.runtime }} --self-contained -p:PublishSingleFile=true -o publish/${{ matrix.runtime }}
-
-    - name: Publish (macOS)
-      if: startsWith(matrix.os, 'macos-')
-      run: |
-        dotnet publish CoreBot.Host -c Release -r ${{ matrix.runtime }} --self-contained -p:PublishSingleFile=true -o publish/${{ matrix.runtime }}
-
-    - name: Upload artifacts (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: CoreBot-${{ matrix.runtime }}
-        path: publish/${{ matrix.runtime }}/
-
-    - name: Upload artifacts (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: CoreBot-${{ matrix.runtime }}
-        path: publish/${{ matrix.runtime }}/
-
-    - name: Upload artifacts (macOS)
-      if: startsWith(matrix.os, 'macos-')
-      uses: actions/upload-artifact@v4
-      with:
-        name: CoreBot-${{ matrix.runtime }}
+        name: ${{ matrix.artifact }}
         path: publish/${{ matrix.runtime }}/
 
   release:
@@ -92,39 +69,19 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Download Linux artifacts
+    - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
-        name: CoreBot-linux-x64
-        path: release/linux-x64
-
-    - name: Download Windows artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: CoreBot-win-x64
-        path: release/win-x64
-
-    - name: Download macOS Intel artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: CoreBot-osx-x64
-        path: release/osx-x64
-
-    - name: Download macOS Apple Silicon artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: CoreBot-osx-arm64
-        path: release/osx-arm64
+        path: release
 
     - name: Create archives
       run: |
-        cd release/linux-x64 && tar -czf ../../corebot-linux-x64.tar.gz *
-        cd ../win-x64 && zip -r ../../corebot-win-x64.zip *
-        cd ../osx-x64 && tar -czf ../../corebot-osx-x64.tar.gz *
-        cd ../osx-arm64 && tar -czf ../../corebot-osx-arm64.tar.gz *
+        cd release/CoreBot-linux-x64 && tar -czf ../../corebot-linux-x64.tar.gz *
+        cd ../CoreBot-win-x64 && zip -r ../../corebot-win-x64.zip *
+        cd ../CoreBot-osx-x64 && tar -czf ../../corebot-osx-x64.tar.gz *
+        cd ../CoreBot-osx-arm64 && tar -czf ../../corebot-osx-arm64.tar.gz *
 
     - name: Generate release notes
-      id: release_notes
       run: |
         echo "## What's Changed" > release_notes.md
         echo "" >> release_notes.md
